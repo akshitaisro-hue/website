@@ -10,7 +10,7 @@ CONN_STR = (
 )
 
 KEY_COLS_TC = ["src_card_type", "advantek_tc_address", "word_pin"]  # card type + ip + pin
-KEY_COLS_TM = ["rt_addres", "sa_addres", "tm_channel_position", "advantek_tm_ip","tm_length]  # real col names (typos preserved)
+KEY_COLS_TM = ["rt_addres", "sa_addres", "tm_channel_position", "advantek_tm_ip","tm_length"]  # real col names (typos preserved)
 
 
 @contextmanager
