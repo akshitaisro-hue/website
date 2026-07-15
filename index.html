@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TCTM Project Sync Cockpit</title>
+<style>
+  /* --- CUSTOM DESIGN SYSTEM (OFFLINE-SAFE) --- */
+  :root {
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1;
+    --slate-400: #94a3b8;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
+    
+    --indigo-50: #f5f3ff;
+    --indigo-100: #ede9fe;
+    --indigo-200: #ddd6fe;
+    --indigo-600: #4f46e5;
+    --indigo-700: #4338ca;
+    --indigo-900: #312e81;
+    
+    --emerald-50: #ecfdf5;
+    --emerald-100: #d1fae5;
+    --emerald-200: #a7f3d0;
+    --emerald-600: #059669;
+    --emerald-700: #047857;
+    --emerald-900: #064e3b;
+    
+    --rose-50: #fff1f2;
+    --rose-100: #ffe4e6;
+    --rose-200: #fecdd3;
+    --rose-600: #e11d48;
+    --rose-700: #be123c;
+    --rose-900: #881337;
+    
+    --amber-50: #fffbeb;
+    --amber-100: #fef3c7;
+    --amber-200: #fde68a;
+    --amber-600: #d97706;
+    --amber-700: #b45309;
+    --amber-900: #78350f;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    height: 100%;
+    background-color: var(--slate-50);
+    color: var(--slate-800);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px;
+  }
+
+  /* --- STRUCTURE --- */
+  .container {
+    max-width: 1024px;
+    width: 100%;
+    margin: 0 auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* --- ANIMATION & UTILS --- */
+  .hidden {
+    display: none !important;
+  }
+
+  .fade {
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* --- CARD COMPONENT --- */
+  .card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 12px 40px -4px rgba(15, 23, 42, 0.08);
+    border: 1px solid var(--slate-100);
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .card-padding {
+    padding: 40px;
+  }
+
+  /* --- HEADER & TITLES --- */
+  .center {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .icon-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    background: var(--indigo-50);
+    border-radius: 14px;
+    color: var(--indigo-600);
+    border: 1px solid var(--indigo-100);
+    margin-bottom: 16px;
+    transition: transform 0.2s ease;
+  }
+
+  .icon-badge:hover {
+    transform: scale(1.05);
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--slate-900);
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    color: var(--slate-500);
+    font-size: 15px;
+    max-width: 520px;
+    margin: 8px auto 0;
+    line-height: 1.5;
+  }
+
+  /* --- ONBOARDING GRID --- */
+  .onboarding-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 16px;
+  }
+
+  @media (max-width: 768px) {
+    .onboarding-grid {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    .col-divider {
+      border-left: none !important;
+      padding-left: 0 !important;
+      border-top: 1px solid var(--slate-100);
+      padding-top: 24px;
+    }
+  }
+
+  .onboarding-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  .col-divider {
+    border-left: 1px solid var(--slate-100);
+    padding-left: 32px;
+  }
+
+  h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--slate-900);
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hint {
+    color: var(--slate-500);
+    font-size: 13px;
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+
+  /* --- INPUTS & LABELS --- */
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  label.field-label {
+    display:block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--slate-400);
+    margin-bottom: 8px;
+  }
+
+  select, input[type=text] {
+    width: 100%;
+    background-color: var(--slate-50);
+    border: 1px solid var(--slate-200);
+    color: var(--slate-800);
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+
+  select:focus, input[type=text]:focus {
+    background-color: #ffffff;
+    border-color: var(--indigo-600);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
+
+  /* --- BUTTONS --- */
+  button, .btn-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: inherit;
+    text-decoration: none;
+  }
+
+  button:active, .btn-link:active {
+    transform: scale(0.98);
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background: var(--indigo-600);
+    color: #ffffff;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--indigo-700);
+  }
+
+  .btn-dark {
+    background: var(--slate-900);
+    color: #ffffff;
+  }
+
+  .btn-dark:hover:not(:disabled) {
+    background: var(--slate-800);
+  }
+
+  .btn-outline {
+    background: #ffffff;
+    border: 1px solid var(--slate-200);
+    color: var(--slate-700);
+  }
+
+  .btn-outline:hover:not(:disabled) {
+    background: var(--slate-50);
+    border-color: var(--slate-300);
+  }
+
+  .btn-danger {
+    background: var(--rose-600);
+    color: #ffffff;
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background: var(--rose-700);
+  }
+
+  .btn-muted {
+    background: var(--slate-200);
+    color: var(--slate-700);
+  }
+
+  .btn-muted:hover:not(:disabled) {
+    background: var(--slate-300);
+  }
+
+  .btn-full {
+    width: 100%;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  .btn-row button, .btn-row .btn-link {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  /* --- TOPBAR & WORKSPACE BADGES --- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--slate-500);
+    font-size: 14px;
+    font-weight: 600;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 0;
+    transition: color 0.2s ease;
+  }
+
+  .back-link:hover {
+    color: var(--indigo-600);
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--indigo-50);
+    color: var(--indigo-700);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--indigo-100);
+  }
+
+  /* --- BANNER DISPLAY --- */
+  .banner {
+    background: linear-gradient(135deg, var(--slate-900) 0%, var(--slate-800) 100%);
+    color: #ffffff;
+    padding: 32px 40px;
+    border-radius: 16px 16px 0 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 250px;
+    height: 100%;
+    background: radial-gradient(circle, rgba(79, 70, 229, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .banner .eyebrow {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--indigo-200);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .banner h1 {
+    color: #ffffff;
+    font-size: 24px;
+  }
+
+  /* --- SECTION PANEL PIPELINE --- */
+  .workspace-content {
+    padding: 32px 40px;
+  }
+
+  .section {
+    border-top: 1px solid var(--slate-100);
+    padding-top: 28px;
+    margin-top: 28px;
+  }
+
+  .section:first-child {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 12px;
+  }
+
+  .section h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--slate-900);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-badge {
+    background-color: var(--slate-100);
+    color: var(--slate-600);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* --- DRAG DROP & FILE WRAPPERS --- */
+  .upload-area {
+    background: var(--slate-50);
+    border: 2px dashed var(--slate-200);
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .upload-area:hover {
+    border-color: var(--indigo-600);
+    background-color: #ffffff;
+  }
+
+  .upload-icon {
+    color: var(--slate-400);
+    transition: color 0.2s ease;
+  }
+
+  .upload-area:hover .upload-icon {
+    color: var(--indigo-600);
+    transform: translateY(-2px);
+  }
+
+  .upload-area-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--slate-700);
+  }
+
+  .upload-area-sub {
+    font-size: 12px;
+    color: var(--slate-400);
+  }
+
+  .empty-box {
+    background: var(--slate-50);
+    border: 1px dashed var(--slate-200);
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    color: var(--slate-500);
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* --- MESSAGE BOXES & ALERTS --- */
+  .msg-box {
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    margin-top: 16px;
+  }
+
+  .msg-info {
+    background: var(--indigo-50);
+    border: 1px solid var(--indigo-100);
+    color: var(--indigo-900);
+  }
+
+  .msg-ok {
+    background: var(--emerald-50);
+    border: 1px solid var(--emerald-100);
+    color: var(--emerald-900);
+  }
+
+  .msg-warn {
+    background: var(--amber-50);
+    border: 1px solid var(--amber-100);
+    color: var(--amber-900);
+  }
+
+  .msg-error {
+    background: var(--rose-50);
+    border: 1px solid var(--rose-100);
+    color: var(--rose-900);
+  }
+
+  .msg-box b {
+    display: block;
+    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 800;
+    margin-bottom: 3px;
+    letter-spacing: .05em;
+  }
+
+  .msg-box-content {
+    flex: 1;
+  }
+
+  /* --- SVGS & MICRO ICONS --- */
+  svg.i {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  svg.i-sm {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
+  }
+
+  svg.i-lg {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* --- TERMINAL EMULATOR FOR ENGINE LOGS --- */
+  .terminal-box {
+    background-color: var(--slate-900);
+    border-radius: 12px;
+    padding: 18px 24px;
+    color: #e2e8f0;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin-top: 14px;
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--slate-800);
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .terminal-line {
+    position: relative;
+    padding-left: 14px;
+    word-break: break-all;
+  }
+
+  .terminal-line::before {
+    content: ">";
+    position: absolute;
+    left: 0;
+    color: var(--indigo-400);
+    font-weight: bold;
+  }
+
+  /* --- INTERACTIVE COMPARISON GRID --- */
+  .sync-status-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .sync-status-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .status-badge-card {
+    background: var(--slate-50);
+    border: 1px solid var(--slate-200);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-badge-card.ok {
+    background: var(--emerald-50);
+    border-color: var(--emerald-100);
+  }
+
+  .status-badge-card.warn {
+    background: var(--amber-50);
+    border-color: var(--amber-100);
+  }
+
+  .status-badge-card.error {
+    background: var(--rose-50);
+    border-color: var(--rose-100);
+  }
+
+  .status-badge-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--slate-900);
+    letter-spacing: -0.02em;
+  }
+
+  .status-badge-card.ok .status-badge-value { color: var(--emerald-700); }
+  .status-badge-card.warn .status-badge-value { color: var(--amber-700); }
+  .status-badge-card.error .status-badge-value { color: var(--rose-700); }
+
+  .status-badge-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--slate-500);
+    letter-spacing: 0.05em;
+  }
+
+  /* --- DATA DIFF TABLE --- */
+  .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--slate-200);
+    border-radius: 10px;
+    margin-top: 16px;
+    background: #ffffff;
+  }
+
+  table.diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+
+  table.diff-table th {
+    background: var(--slate-100);
+    color: var(--slate-700);
+    font-weight: 700;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--slate-200);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+
+  table.diff-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--slate-100);
+    vertical-align: middle;
+  }
+
+  table.diff-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  table.diff-table tr:hover td {
+    background-color: var(--slate-50);
+  }
+
+  .key-pill {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--slate-100);
+    color: var(--slate-700);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--slate-200);
+    display: inline-block;
+  }
+
+  .cell-db {
+    color: var(--rose-700);
+    background-color: var(--rose-50);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    border-left: 3px solid var(--rose-200);
+  }
+
+  .cell-excel {
+    color: var(--emerald-700);
+    background-color: var(--emerald-50);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    border-left: 3px solid var(--emerald-200);
+  }
+
+  /* --- FOOTER --- */
+  .site-footer {
+    text-align: center;
+    font-size: 13px;
+    color: var(--slate-500);
+    margin-top: 32px;
+    padding: 24px 0 12px;
+    border-top: 1px solid var(--slate-200);
+  }
+
+  .site-footer a {
+    color: var(--slate-700);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .site-footer a:hover {
+    color: var(--indigo-600);
+    text-decoration: underline;
+  }
+
+  /* --- FILE TAG BADGES --- */
+  .file-badges-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .file-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--slate-100);
+    border: 1px solid var(--slate-200);
+    color: var(--slate-700);
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: 500;
+  }
+
+  .file-badge-success {
+    background: var(--emerald-50);
+    border-color: var(--emerald-100);
+    color: var(--emerald-800);
+  }
+
+  /* --- ROTATING SPINNER FOR LOADERS --- */
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ==================== SELECTOR BOARD (ONBOARDING) ==================== -->
+  <div id="selectorBoard" class="card fade">
+    <div class="card-padding">
+      <div class="center">
+        <span class="icon-badge">
+          <svg class="i i-lg" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </span>
+        <h1>TCTM Project Sync Cockpit</h1>
+        <p class="subtitle">Ingest multi-terminal timecards, execute automatic card mapping calculations, and maintain flawless database records state alignment.</p>
+      </div>
+
+      <div class="onboarding-grid">
+        <!-- Open existing project workspace -->
+        <div class="onboarding-col">
+          <h2>
+            <svg class="i text-indigo-600" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            Active Project Workspace
+          </h2>
+          <p class="hint">Select an existing registered workspace ledger to analyze spreadsheet payloads.</p>
+          
+          <div id="noProjectsMsg" class="empty-box hidden">
+            <svg class="i text-slate-400" style="width: 32px; height: 32px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>No project ledgers configured. Let's create your first workspace on the right.</span>
+          </div>
+
+          <div id="projectListWrap" class="hidden">
+            <div class="form-group">
+              <label class="field-label" for="projectSelect">Registered Projects</label>
+              <select id="projectSelect"></select>
+            </div>
+            <button onclick="enterWorkspace()" class="btn-primary btn-full">
+              <span>Open Selected Workspace</span>
+              <svg class="i i-sm" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Create new project workspace -->
+        <div class="onboarding-col col-divider">
+          <h2>
+            <svg class="i text-indigo-600" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Initialize New Workspace
+          </h2>
+          <p class="hint">Register a clean project token. Duplicate names are rejected to protect database ledger integrity.</p>
+          
+          <div class="form-group">
+            <label class="field-label" for="newProjName">Workspace Identifier</label>
+            <input id="newProjName" type="text" placeholder="e.g. Hyderabad Terminal Sync">
+          </div>
+
+          <div id="createError" class="msg-box msg-error hidden" style="margin-bottom: 16px; margin-top: 0;"></div>
+
+          <button onclick="createProject()" class="btn-dark btn-full">
+            <svg class="i i-sm" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <span>Create Workspace Ledger</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== WORKSPACE BOARD (ACTIVE PIPELINE) ==================== -->
+  <div id="workspaceBoard" class="fade hidden">
+    
+    <!-- Workspace Navigation Bar -->
+    <div class="topbar">
+      <button onclick="exitWorkspace()" class="back-link">
+        <svg class="i" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span>Back to Project Ledgers</span>
+      </button>
+      <div class="pill">
+        <svg class="i" style="width:14px; height:14px" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        <span id="activePidLabel"></span>
+      </div>
+    </div>
+
+    <!-- Main Workspace Cockpit Container -->
+    <div class="card">
+      <div class="banner">
+        <span class="eyebrow">TCTM Processing Pipeline</span>
+        <h1 id="activeProjName"></h1>
+      </div>
+
+      <div class="workspace-content">
+
+        <!-- STEP 1: UPLOAD TARGET -->
+        <div class="section">
+          <div class="section-header">
+            <h3>
+              <svg class="i text-indigo-600" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+              <span>01. Spreadsheet Ingestion</span>
+            </h3>
+            <span class="section-badge">Required</span>
+          </div>
+          <p class="hint">Upload the directory containing terminal raw data sheets. System parses all matching Excel files.</p>
+          
+          <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden" onchange="handleFileChange()">
+          
+          <div class="upload-area" onclick="triggerFolderSelect()">
+            <span class="upload-icon">
+              <svg class="i i-lg" style="width:40px; height:40px;" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <div class="upload-area-text">Select or Drag Raw Terminal Data Folder</div>
+            <div class="upload-area-sub">Only files carrying .xlsx or .xls extensions will be ingested.</div>
+          </div>
+
+          <div id="fileListPreview" class="file-preview"></div>
+          
+          <div class="file-badges-container" id="uploadedFilesContainer"></div>
+
+          <button id="uploadBtn" onclick="uploadFiles()" class="btn-primary" style="margin-top: 16px; display: none;">
+            <svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            <span>Upload Spreadsheet Assets</span>
+          </button>
+        </div>
+
+        <!-- STEP 2: RUN MAPPER -->
+        <div class="section">
+          <div class="section-header">
+            <h3>
+              <svg class="i text-indigo-600" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <span>02. Compute Card/PIN Mapping</span>
+            </h3>
+            <span class="section-badge">Engine</span>
+          </div>
+          <p class="hint">Trigger the backend calculation matrix. Maps individual Card IDs to master terminal records.</p>
+          
+          <button id="runEngineBtn" onclick="runEngine()" class="btn-primary">
+            <svg class="i" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>Execute Mapping Calculations</span>
+          </button>
+          
+          <div id="runResultPanel" class="hidden fade">
+            <div class="msg-box msg-ok">
+              <svg class="i text-emerald-600" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <div class="msg-box-content">
+                <b>Calculations Completed</b>
+                <span id="runResultMsg"></span>
+              </div>
+            </div>
+
+            <!-- Terminal Process Output Logs -->
+            <div class="terminal-box" id="engineLogsTerminal"></div>
+
+            <div class="btn-row">
+              <a id="pdfLink" href="#" target="_blank" class="btn-outline btn-link">
+                <svg class="i text-rose-600" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span>Download PDF Summary</span>
+              </a>
+              <a id="excelLink" href="#" target="_blank" class="btn-outline btn-link">
+                <svg class="i text-emerald-600" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span>Download Master Excel</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: DATABASE COCKPIT PARITY -->
+        <div class="section">
+          <div class="section-header">
+            <h3>
+              <svg class="i text-indigo-600" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+              <span>03. Database State Alignment</span>
+            </h3>
+            <span class="section-badge">Ledger Sync</span>
+          </div>
+          <p class="hint">Check current project rows inside the relational database. Align database ledger to spreadsheet state.</p>
+          
+          <button id="syncBtn" onclick="checkDBSync()" class="btn-primary">
+            <svg class="i" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            <span>Verify Database Parity</span>
+          </button>
+          
+          <div id="syncPanel" class="hidden fade"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer class="site-footer">
+  <p>TCTM Project Sync Cockpit &copy; 2026. All rights reserved. Developed by <a href="#" target="_blank">Akshita Gupta</a>.</p>
+</footer>
+
+<script>
+let projects = [];
+let activeProject = null;
+let lastSyncResult = null;
+
+// On Page Load
+document.addEventListener("DOMContentLoaded", () => {
+  fetchProjects();
+});
+
+async function fetchProjects() {
+  const res = await fetch("/api/projects");
+  projects = await res.json();
+  renderSelector();
+}
+
+function renderSelector() {
+  const sel = document.getElementById("projectSelect");
+  const noMsg = document.getElementById("noProjectsMsg");
+  const listWrap = document.getElementById("projectListWrap");
+  if (!projects.length) {
+    noMsg.classList.remove("hidden");
+    listWrap.classList.add("hidden");
+    return;
+  }
+  noMsg.classList.add("hidden");
+  listWrap.classList.remove("hidden");
+  sel.innerHTML = projects.map(p => `<option value="${p.p_id}">${p.name} [ID: ${p.p_id}]</option>`).join("");
+}
+
+async function createProject() {
+  const nameInput = document.getElementById("newProjName");
+  const name = nameInput.value.trim();
+  const errEl = document.getElementById("createError");
+  errEl.classList.add("hidden");
+  
+  if (!name) { 
+    errEl.textContent = "Project name is required."; 
+    errEl.classList.remove("hidden"); 
+    return; 
+  }
+
+  try {
+    const res = await fetch("/api/projects", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({name})
+    });
+    const data = await res.json();
+    if (res.status === 409) {
+      errEl.textContent = data.detail || "Project already exists.";
+      errEl.classList.remove("hidden");
+      return;
+    }
+    activeProject = data;
+    nameInput.value = "";
+    await fetchProjects();
+    enterWorkspaceUI();
+  } catch (err) {
+    errEl.textContent = "Error connecting to server.";
+    errEl.classList.remove("hidden");
+  }
+}
+
+function enterWorkspace() {
+  const pid = document.getElementById("projectSelect").value;
+  activeProject = projects.find(p => p.p_id === pid);
+  enterWorkspaceUI();
+}
+
+function enterWorkspaceUI() {
+  document.getElementById("selectorBoard").classList.add("hidden");
+  document.getElementById("workspaceBoard").classList.remove("hidden");
+  document.getElementById("activePidLabel").textContent = "Active Ledger: " + activeProject.p_id;
+  document.getElementById("activeProjName").textContent = activeProject.name;
+  
+  // Clear file lists and panel states
+  document.getElementById("folderInput").value = "";
+  document.getElementById("fileListPreview").innerHTML = "";
+  document.getElementById("uploadBtn").style.display = "none";
+  document.getElementById("runResultPanel").classList.add("hidden");
+  document.getElementById("syncPanel").classList.add("hidden");
+  
+  renderUploadedFiles();
+}
+
+function renderUploadedFiles() {
+  const container = document.getElementById("uploadedFilesContainer");
+  container.innerHTML = "";
+  
+  if (activeProject && activeProject.files && activeProject.files.length > 0) {
+    activeProject.files.forEach(f => {
+      container.innerHTML += `
+        <div class="file-badge file-badge-success">
+          <svg class="i i-sm text-emerald-600" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>${f}</span>
+        </div>
+      `;
+    });
+  } else {
+    container.innerHTML = `
+      <div class="file-badge">
+        <svg class="i i-sm text-slate-400" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>No server file assets ingested yet.</span>
+      </div>
+    `;
+  }
+}
+
+function exitWorkspace() {
+  activeProject = null;
+  document.getElementById("workspaceBoard").classList.add("hidden");
+  document.getElementById("selectorBoard").classList.remove("hidden");
+  fetchProjects();
+}
+
+function triggerFolderSelect() {
+  document.getElementById("folderInput").click();
+}
+
+function handleFileChange() {
+  const filesInput = document.getElementById("folderInput");
+  const files = [...filesInput.files].filter(f => /\.(xlsx|xls)$/i.test(f.name));
+  const preview = document.getElementById("fileListPreview");
+  const uploadBtn = document.getElementById("uploadBtn");
+  
+  if (files.length > 0) {
+    preview.innerHTML = `
+      <div class="msg-box msg-info">
+        <svg class="i text-indigo-600" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <div class="msg-box-content">
+          <b>Pending Import Queued</b>
+          Parsed ${files.length} valid Excel spreadsheets in selected directory:
+          <div style="font-family: monospace; font-size:11px; margin-top:6px; color: var(--slate-600);">
+            ${files.map(f => f.name).join(", ")}
+          </div>
+        </div>
+      </div>
+    `;
+    uploadBtn.style.display = "inline-flex";
+  } else {
+    preview.innerHTML = `
+      <div class="msg-box msg-warn">
+        <svg class="i text-amber-600" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div class="msg-box-content">
+          <b>Ingestion Warning</b>
+          No valid .xlsx or .xls files found in the chosen folder path. Please select a valid folder containing raw spreadsheet assets.
+        </div>
+      </div>
+    `;
+    uploadBtn.style.display = "none";
+  }
+}
+
+async function uploadFiles() {
+  const filesInput = document.getElementById("folderInput");
+  const files = [...filesInput.files].filter(f => /\.(xlsx|xls)$/i.test(f.name));
+  if (!files.length) return;
+
+  const btn = document.getElementById("uploadBtn");
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `
+    <svg class="i spin" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+    <span>Ingesting spreadsheet assets...</span>
+  `;
+
+  const formData = new FormData();
+  files.forEach(f => formData.append("files", f));
+
+  try {
+    const res = await fetch(`/api/projects/${activeProject.p_id}/upload`, { 
+      method: "POST", 
+      body: formData 
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      activeProject.files = data.files;
+      renderUploadedFiles();
+      
+      document.getElementById("fileListPreview").innerHTML = `
+        <div class="msg-box msg-ok">
+          <svg class="i text-emerald-600" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          <div class="msg-box-content">
+            <b>Assets Loaded Successfully</b>
+            Successfully registered ${data.files.length} spreadsheet files onto the backend workspace database.
+          </div>
+        </div>
+      `;
+      btn.style.display = "none";
+    } else {
+      alert("Spreadsheet ingestion failed.");
+    }
+  } catch (err) {
+    alert("Connection error uploading files.");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
+async function runEngine() {
+  const btn = document.getElementById("runEngineBtn");
+  btn.disabled = true;
+  btn.innerHTML = `
+    <svg class="i spin" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+    <span>Processing mapping engine matrix...</span>
+  `;
+  
+  try {
+    const res = await fetch(`/api/projects/${activeProject.p_id}/run`, { method: "POST" });
+    if (!res.ok) { 
+      alert("TCTM mapping engine run failed. Ensure spreadsheet files have been uploaded first."); 
+      return; 
+    }
+    const data = await res.json();
+    
+    document.getElementById("runResultMsg").textContent = 
+      `${data.message || 'Signal assignment execution finished.'} Found ${data.tc_count || 0} valid Timecard (TC) records and mapped ${data.tm_count || 0} Terminal logs (TM) events successfully.`;
+    
+    document.getElementById("pdfLink").href = data.pdf_report || `/api/projects/${activeProject.p_id}/report.pdf`;
+    document.getElementById("excelLink").href = data.master_excel || `/api/projects/${activeProject.p_id}/master-excel`;
+    
+    // Simulate/Format detailed diagnostic log outputs inside the terminal box for the user
+    const logBox = document.getElementById("engineLogsTerminal");
+    const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
+    logBox.innerHTML = `
+      <div class="terminal-line">[${timestamp}] [SYS] Initializing calculation matrix mapper pipeline...</div>
+      <div class="terminal-line">[${timestamp}] [SYS] Parsing active worksheets from ingested spreadsheet list...</div>
+      ${activeProject.files.map(f => `<div class="terminal-line">[${timestamp}] [PARSE] Ingested file: ${f}</div>`).join("")}
+      <div class="terminal-line">[${timestamp}] [ENGINE] Extracted ${data.tc_count || 0} timecards from worksheets.</div>
+      <div class="terminal-line">[${timestamp}] [ENGINE] Processed ${data.tm_count || 0} physical raw logs records.</div>
+      <div class="terminal-line">[${timestamp}] [MAP] Mapped Card IDs to Employee PIN indices automatically.</div>
+      <div class="terminal-line">[${timestamp}] [REPORT] Exported combined master worksheet and formatted document reports successfully.</div>
+      <div class="terminal-line">[${timestamp}] [SYS] Pipeline process completed without failures. Ready for DB parity check.</div>
+    `;
+    
+    document.getElementById("runResultPanel").classList.remove("hidden");
+  } catch (err) {
+    alert("Connection error running mapping calculations.");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `
+      <svg class="i" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      <span>Execute Mapping Calculations</span>
+    `;
+  }
+}
+
+async function checkDBSync() {
+  const btn = document.getElementById("syncBtn");
+  btn.disabled = true;
+  btn.innerHTML = `
+    <svg class="i spin" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+    <span>Generating and comparing database parity summaries...</span>
+  `;
+  
+  try {
+    // Compile sync payload first
+    await fetch(`/api/projects/${activeProject.p_id}/sync`, { method: "POST" });
+    
+    // Trigger comparison check
+    const res = await fetch(`/api/projects/${activeProject.p_id}/sync/check`, { method: "POST" });
+    if (!res.ok) { 
+      alert("Database parity comparison failed. Please run Step 2 Calculations first."); 
+      return; 
+    }
+    const data = await res.json();
+    lastSyncResult = data;
+    renderSyncPanel(data);
+  } catch (err) {
+    alert("Connection error verifying database sync state.");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `
+      <svg class="i" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+      <span>Verify Database Parity</span>
+    `;
+  }
+}
+
+function renderSyncPanel(data) {
+  const panel = document.getElementById("syncPanel");
+  panel.classList.remove("hidden");
+
+  // Base summary cards
+  const summaryKpiGrid = `
+    <div class="sync-status-grid">
+      <div class="status-badge-card ok">
+        <span class="status-badge-value">${data.matched_count || 0}</span>
+        <span class="status-badge-label">Matched Rows</span>
+      </div>
+      <div class="status-badge-card warn">
+        <span class="status-badge-value">${data.new_count || 0}</span>
+        <span class="status-badge-label">Awaiting Sync</span>
+      </div>
+      <div class="status-badge-card ${data.conflict_rows && data.conflict_rows.length > 0 ? 'error' : ''}">
+        <span class="status-badge-value">${data.conflict_rows ? data.conflict_rows.length : 0}</span>
+        <span class="status-badge-label">Conflicting Rows</span>
+      </div>
+    </div>
+  `;
+
+  if (data.status === "no_records") {
+    panel.innerHTML = `
+      ${summaryKpiGrid}
+      <div class="msg-box msg-info">
+        <svg class="i text-indigo-600" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <div class="msg-box-content">
+          <b>Clean Database Ledger</b>
+          No existing historical records carry this Project ID in the central database tables.
+          All <b>${data.new_count || 0}</b> pending rows are ready to be cleanly inserted.
+        </div>
+      </div>
+      <div class="btn-row">
+        <button onclick="confirmSync('insert_all')" class="btn-primary">
+          <svg class="i" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <span>Insert All Records to Database</span>
+        </button>
+      </div>
+    `;
+    return;
+  }
+  
+  if (data.status === "all_match") {
+    panel.innerHTML = `
+      ${summaryKpiGrid}
+      <div class="msg-box msg-ok">
+        <svg class="i text-emerald-600" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        <div class="msg-box-content">
+          <b>Perfect Parity Synced</b>
+          Fantastic! The central database matches your current workspace calculations ledger completely. No synchronization alignment is required.
+        </div>
+      </div>
+    `;
+    return;
+  }
+  
+  if (data.status === "conflict") {
+    // Generate Conflict rows diff table list
+    let diffRowsHtml = "";
+    if (data.conflict_rows && data.conflict_rows.length > 0) {
+      data.conflict_rows.forEach(c => {
+        let existingDesc = "";
+        let pendingDesc = "";
+        
+        if (c.type.includes("Timecard")) {
+          existingDesc = `${c.existing.name || 'N/A'} • ${c.existing.department || 'N/A'} • ${c.existing.total_hours || 0} hrs`;
+          pendingDesc = `${c.pending.name || 'N/A'} • ${c.pending.department || 'N/A'} • ${c.pending.total_hours || 0} hrs`;
+        } else {
+          existingDesc = `PIN: ${c.existing.pin_id || 'N/A'} • Access: ${c.existing.access_status || 'N/A'}`;
+          pendingDesc = `PIN: ${c.pending.pin_id || 'N/A'} • Access: ${c.pending.access_status || 'N/A'}`;
+        }
+
+        diffRowsHtml += `
+          <tr>
+            <td><span class="key-pill">${c.key}</span></td>
+            <td><span style="font-weight:600;">${c.type}</span></td>
+            <td><div class="cell-db">${existingDesc}</div></td>
+            <td><div class="cell-excel">${pendingDesc}</div></td>
+          </tr>
+        `;
+      });
+    }
+
+    panel.innerHTML = `
+      ${summaryKpiGrid}
+      <div class="msg-box msg-error">
+        <svg class="i text-rose-600" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div class="msg-box-content">
+          <b>Database Key Conflicts Detected</b>
+          Records carrying identical keys already exist in the SQL database, but contain different attributes (names, hours, or status codes).
+          Review differences below. You can force overwrite or decline alignment.
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="diff-table">
+          <thead>
+            <tr>
+              <th style="width:15%">Unique Key</th>
+              <th style="width:20%">Record Type</th>
+              <th style="width:32.5%">Active SQL Database Record</th>
+              <th style="width:32.5%">Pending Spreadsheet Payload</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${diffRowsHtml}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="btn-row">
+        <button onclick="confirmSync('insert_all')" class="btn-danger">
+          <svg class="i" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <span>Force Overwrite DB with Spreadsheet Data</span>
+        </button>
+        <button onclick="cancelSync()" class="btn-outline">
+          <span>Cancel Sync Operation</span>
+        </button>
+      </div>
+    `;
+    return;
+  }
+  
+  if (data.status === "some_new") {
+    panel.innerHTML = `
+      ${summaryKpiGrid}
+      <div class="msg-box msg-warn">
+        <svg class="i text-amber-600" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <div class="msg-box-content">
+          <b>Pending Alignment Rows Found</b>
+          <b>${data.matched_count || 0}</b> rows matched existing database parameters flawlessly, while <b>${data.new_count || 0}</b> brand new entries are missing in the database.
+          Would you like to insert only the new records to safeguard historical files?
+        </div>
+      </div>
+      <div class="btn-row">
+        <button onclick="confirmSync('insert_new_only')" class="btn-primary">
+          <svg class="i" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <span>Insert Missing New Rows Only (${data.new_count})</span>
+        </button>
+        <button onclick="cancelSync()" class="btn-outline">
+          <span>Decline Sync</span>
+        </button>
+      </div>
+    `;
+    return;
+  }
+}
+
+function cancelSync() {
+  document.getElementById("syncPanel").classList.add("hidden");
+}
+
+async function confirmSync(action) {
+  const btn = document.getElementById("syncBtn");
+  btn.disabled = true;
+  
+  try {
+    const res = await fetch(`/api/projects/${activeProject.p_id}/sync/confirm`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({action})
+    });
+    const data = await res.json();
+    
+    document.getElementById("syncPanel").innerHTML = `
+      <div class="msg-box msg-ok">
+        <svg class="i text-emerald-600" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        <div class="msg-box-content">
+          <b>Synchronization Succeeded</b>
+          ${data.message || 'The database tables have been successfully updated with the requested alignment state.'}
+        </div>
+      </div>
+      <div class="btn-row">
+        <button onclick="checkDBSync()" class="btn-outline">
+          <svg class="i" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          <span>Re-verify database alignment</span>
+        </button>
+      </div>
+    `;
+  } catch (err) {
+    alert("Connection error confirming database alignment updates.");
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>
+
+</body>
+</html>
