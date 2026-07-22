@@ -11,6 +11,13 @@ from pipeline.tctm_wrapper import run_pipeline
 from pipeline.gen_summary_wrapper import run_gen_summary
 
 app = FastAPI()
+app.add_mmiddleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials = True,
+    allow_methods = ['*'],
+    allow_headers = ['*'],
+)
 DATA_DIR = "data"
 
 # in-memory cache of last sync/check result per p_id, used by sync/confirm
@@ -101,6 +108,7 @@ def run(p_id: int):
         "pdf_report": f"/api/projects/{p_id}/report.pdf",
         "tc_count": result.get("tc_count", 0),
         "tm_count": result.get("tm_count", 0),
+        "card_baseline_note" : result.get(card_baseline_note"),
     }
 
 
@@ -169,27 +177,29 @@ def sync_confirm(p_id: int, payload: SyncConfirm):
     if not cached:
         raise HTTPException(status_code=400, detail="Run sync/check first")
 
-    if payload.action == "insert_all":
-        # covers no_records + conflict (force-insert everything incoming)
-        tc_insert = cached["new_rows"]["tc"]
-        tm_insert = cached["new_rows"]["tm"]
-    elif payload.action == "insert_new_only":
-        tc_insert = cached["new_rows"]["tc"]
-        tm_insert = cached["new_rows"]["tm"]
-    else:
-        raise HTTPException(status_code=400, detail="action must be insert_all or insert_new_only")
+    tc_insert = cached["new_rows"]["tc"]
+    tm_insert = cached["new_rows"]["tm"]
+    tc_update = cached.get("updated_rows",{}).get("tc",[])
+    tm_update = cached.get("updated_rows",{}).get("tm",[])
 
     inserted = {"tc": 0, "tm": 0}
+    
     if tc_insert:
         cols = [c for c in tc_insert[0].keys() if c not in ("match_key", "p_id","tc_id")]
         inserted["tc"] = db.insert_records(p_id, "all_tc", tc_insert, cols)
     if tm_insert:
         cols = [c for c in tm_insert[0].keys() if c not in ("match_key", "p_id","tm_id)]
         inserted["tm"] = db.insert_records(p_id, "all_tm", tm_insert, cols)
+    if tc_update:
+        cols = [c for c in tc_update[0].keys() if c not in ("match_key", "p_id","tc_id")]
+        updated["tc"] = db.update_records(p_id, "all_tc", tc_update, cols)
+    if tm_update:
+        cols = [c for c in tm_update[0].keys() if c not in ("match_key", "p_id","tm_id)]
+        updated["tm"] = db.update_records(p_id, "all_tm", tm_update, cols)
 
     _last_check_cache.pop(p_id, None)
-    msg = f"Inserted {inserted['tc']} timecard rows and {inserted['tm']} terminal-log rows."
-    return {"status": "inserted", "message": msg, **inserted}
+    msg = f"Inserted {inserted['tc']+inserted['tm']} new rows, updated and {updated['tc']+updated['tm']} changed rows "
+    return {"status": "inserted", "message": msg,"inserted":inserted,"updated" : updated}
 
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
