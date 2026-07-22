@@ -4,6 +4,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import db
@@ -11,7 +12,7 @@ from pipeline.tctm_wrapper import run_pipeline
 from pipeline.gen_summary_wrapper import run_gen_summary
 
 app = FastAPI()
-app.add_mmiddleware(
+app.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
     allow_credentials = True,
