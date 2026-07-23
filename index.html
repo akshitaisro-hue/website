@@ -930,8 +930,19 @@
             <span class="section-badge">Engine</span>
           </div>
           <p class="hint">Trigger the backend calculation matrix. Maps individual Card IDs to master terminal records.</p>
+
+          <label class ="field-label">Card counter baseline</label>
+          <div class = "baseline-choice">
+            <label>
+              <input type="radio" name="cardBaseline" value ="1" onchange = "enableRunButton()" ><span>Default counters (fresh start)</span>
+            </label>
+            <label>
+              <input type="radio" name="cardBaseline" id ="cardFromExcelRadio" value ="0" disabled onchange = "enableRunButton()">
+              <span>Continue from START_TCTM_CARDS.xlsx <span id="cardExcelHint" style = "color:var(--slate-400)">(upload it first)</span> </span>           </label>
+          </div>
           
-          <button id="runEngineBtn" onclick="runEngine()" class="btn-primary">
+          
+          <button id="runEngineBtn" onclick="runEngine()" class="btn-primary" disabled>
             <svg class="i" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             <span>Execute Mapping Calculations</span>
           </button>
@@ -944,9 +955,6 @@
                 <span id="runResultMsg"></span>
               </div>
             </div>
-
-            <!-- Terminal Process Output Logs -->
-            <div class="terminal-box" id="engineLogsTerminal"></div>
 
             <div class="btn-row">
               <a id="pdfLink" href="#" target="_blank" class="btn-outline btn-link">
@@ -1170,6 +1178,13 @@ async function uploadFiles() {
       const data = await res.json();
       activeProject.files = data.files;
       renderUploadedFiles();
+
+      if(data.files.some(f=> /^start_tctm_cards\.xlsx?$/i.test(f))){
+        const cardRadio = document.getElementById("cardFromExcelRadio");
+        cardRadio.disabled = false;
+        document.getElementById("cardExcelHint").textContent = "(available)";
+        document.getElementById("cardExcelHint").style.color = "var(--emerald-700)";
+      }
       
       document.getElementById("fileListPreview").innerHTML = `
         <div class="msg-box msg-ok">
@@ -1195,6 +1210,14 @@ async function uploadFiles() {
 async function runEngine() {
   const btn = document.getElementById("runEngineBtn");
   btn.disabled = true;
+  const checkedRadio = document.querySelector('input[name="cardBaseline"]:checked);
+  if(!checkedRadio){
+    alert("Select a crad counter baseline o[pyion first.");
+    btn.disabled = false;
+    return;
+  }
+  const cardSelection = checkedRadio.value;
+  
   btn.innerHTML = `
     <svg class="i spin" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
     <span>Processing mapping engine matrix...</span>
@@ -1207,26 +1230,14 @@ async function runEngine() {
       return; 
     }
     const data = await res.json();
-    
     document.getElementById("runResultMsg").textContent = 
-      `${data.message || 'Signal assignment execution finished.'} Found ${data.tc_count || 0} valid Timecard (TC) records and mapped ${data.tm_count || 0} Terminal logs (TM) events successfully.`;
-    
+      `${data.message || 'Signal assignment execution finished.'} Found TC: ${data.tc_count || 0} and TM: ${data.tm_count || 0} successfully.`;
+
+    if(data.card_baseline_note){
+      document.getElementById("runResultMsg").textContent += '${data.card_baseline_note}';
+    }
     document.getElementById("pdfLink").href = data.pdf_report || `/api/projects/${activeProject.p_id}/report.pdf`;
     document.getElementById("excelLink").href = data.master_excel || `/api/projects/${activeProject.p_id}/master-excel`;
-    
-    // Simulate/Format detailed diagnostic log outputs inside the terminal box for the user
-    const logBox = document.getElementById("engineLogsTerminal");
-    const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
-    logBox.innerHTML = `
-      <div class="terminal-line">[${timestamp}] [SYS] Initializing calculation matrix mapper pipeline...</div>
-      <div class="terminal-line">[${timestamp}] [SYS] Parsing active worksheets from ingested spreadsheet list...</div>
-      ${activeProject.files.map(f => `<div class="terminal-line">[${timestamp}] [PARSE] Ingested file: ${f}</div>`).join("")}
-      <div class="terminal-line">[${timestamp}] [ENGINE] Extracted ${data.tc_count || 0} timecards from worksheets.</div>
-      <div class="terminal-line">[${timestamp}] [ENGINE] Processed ${data.tm_count || 0} physical raw logs records.</div>
-      <div class="terminal-line">[${timestamp}] [MAP] Mapped Card IDs to Employee PIN indices automatically.</div>
-      <div class="terminal-line">[${timestamp}] [REPORT] Exported combined master worksheet and formatted document reports successfully.</div>
-      <div class="terminal-line">[${timestamp}] [SYS] Pipeline process completed without failures. Ready for DB parity check.</div>
-    `;
     
     document.getElementById("runResultPanel").classList.remove("hidden");
   } catch (err) {
@@ -1397,28 +1408,50 @@ function renderSyncPanel(data) {
   }
   
   if (data.status === "some_new") {
-    panel.innerHTML = `
-      ${summaryKpiGrid}
-      <div class="msg-box msg-warn">
-        <svg class="i text-amber-600" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        <div class="msg-box-content">
-          <b>Pending Alignment Rows Found</b>
-          <b>${data.matched_count || 0}</b> rows matched existing database parameters flawlessly, while <b>${data.new_count || 0}</b> brand new entries are missing in the database.
-          Would you like to insert only the new records to safeguard historical files?
-        </div>
-      </div>
-      <div class="btn-row">
-        <button onclick="confirmSync('insert_new_only')" class="btn-primary">
-          <svg class="i" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          <span>Insert Missing New Rows Only (${data.new_count})</span>
-        </button>
-        <button onclick="cancelSync()" class="btn-outline">
-          <span>Decline Sync</span>
-        </button>
-      </div>
+  let diffRowsHtml = "";
+  (data.conflict_rows || []).forEach(c => {
+    const changedList = Object.entries(c.changed_fields).map(([col, v]) =>
+      `<div style="margin-bottom:4px;"><b>${col}</b>: <span class="cell-db">${v.old ?? 'N/A'}</span> → <span class="cell-excel">${v.new ?? 'N/A'}</span></div>`
+    ).join("");
+    diffRowsHtml += `
+      <tr>
+        <td><span class="key-pill">${c.key}</span></td>
+        <td><span style="font-weight:600;">${c.type}</span></td>
+        <td colspan="2">${changedList}</td>
+      </tr>
     `;
-    return;
-  }
+  });
+
+  panel.innerHTML = `
+    ${summaryKpiGrid}
+    <div class="msg-box msg-warn">
+      <svg class="i text-amber-600" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <div class="msg-box-content">
+        <b>Pending Alignment Rows Found</b>
+        <b>${data.matched_count || 0}</b> matched, <b>${data.new_count || 0}</b> new, <b>${data.updated_count || 0}</b> changed.
+      </div>
+    </div>
+
+    ${diffRowsHtml ? `
+    <div class="table-wrapper">
+      <table class="diff-table">
+        <thead><tr><th style="width:15%">Key</th><th style="width:15%">Type</th><th colspan="2">Changed Fields (old → new)</th></tr></thead>
+        <tbody>${diffRowsHtml}</tbody>
+      </table>
+    </div>` : ""}
+
+    <div class="btn-row">
+      <button onclick="confirmSync('insert_new_only')" class="btn-primary">
+        <svg class="i" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <span>Insert New (${data.new_count}) + Update Changed (${data.updated_count})</span>
+      </button>
+      <button onclick="cancelSync()" class="btn-outline">
+        <span>Decline Sync</span>
+      </button>
+    </div>
+  `;
+  return;
+}
 }
 
 function cancelSync() {
