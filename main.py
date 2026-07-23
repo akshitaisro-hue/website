@@ -5,6 +5,8 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import BackgroundTasks
+from pipeline.alias_fill import fill_aliases
 from pydantic import BaseModel
 
 import db
@@ -23,6 +25,7 @@ DATA_DIR = "data"
 
 # in-memory cache of last sync/check result per p_id, used by sync/confirm
 _last_check_cache: dict[int, dict] = {}
+_alias_progress: dict[int, dict] = {}
 
 
 def project_paths(p_id):
@@ -145,27 +148,76 @@ def sync(p_id: int):
     result = run_gen_summary(master_path, paths["output"], p_id)
     return {"status": "done", **result}
 
+def _run_sync_check_job(p_id: int):
+    try:
+        paths = project_paths(p_id)
+        master_path = os.path.join(paths["output"], "master_summary_tctm.xlsx")
+
+        def progress_cb(done, total):
+            _alias_progress[p_id] = {"phase": "alias", "done": done, "total": total, "status": "running"}
+
+        _alias_progress[p_id] = {"phase": "alias", "done": 0, "total": 0, "status": "running"}
+        tc_alias, tm_alias = fill_aliases(master_path, progress_callback=progress_cb)
+
+        _alias_progress[p_id] = {"phase": "generate", "status": "running"}
+        run_gen_summary(master_path, paths["output"], p_id, tc_alias, tm_alias)
+
+        _alias_progress[p_id] = {"phase": "diff", "status": "running"}
+        tc_path = os.path.join(paths["output"], "all_tc.xlsx")
+        tm_path = os.path.join(paths["output"], "all_tm.xlsx")
+        tc_df = pd.read_excel(tc_path)
+        tm_df = pd.read_excel(tm_path)
+        tc_rows = tc_df.to_dict(orient="records")
+        tm_rows = tm_df.to_dict(orient="records")
+        for r in tc_rows:
+            r["match_key"] = db.build_match_key(r, "all_tc")
+        for r in tm_rows:
+            r["match_key"] = db.build_match_key(r, "all_tm")
+
+        diff_result = db.check_sync(p_id, tc_rows, tm_rows)
+        _last_check_cache[p_id] = diff_result
+        _alias_progress[p_id] = {"phase": "complete", "status": "complete", "result": diff_result}
+
+    except Exception as e:
+        _alias_progress[p_id] = {"phase": "error", "status": "error", "message": str(e)}
+
 
 @app.post("/api/projects/{p_id}/sync/check")
-def sync_check(p_id: int):
+def sync_check(p_id: int, background_tasks: BackgroundTasks):
     paths = project_paths(p_id)
-    tc_path = os.path.join(paths["output"], "all_tc.xlsx")
-    tm_path = os.path.join(paths["output"], "all_tm.xlsx")
-    if not os.path.isfile(tc_path) or not os.path.isfile(tm_path):
-        raise HTTPException(status_code=400, detail="all_tc.xlsx/all_tm.xlsx not found — run /sync first")
+    master_path = os.path.join(paths["output"], "master_summary_tctm.xlsx")
+    if not os.path.isfile(master_path):
+        raise HTTPException(status_code=400, detail="master_summary_tctm.xlsx not found — run pipeline first")
 
-    tc_df = pd.read_excel(tc_path)
-    tm_df = pd.read_excel(tm_path)
-    tc_rows = tc_df.to_dict(orient="records")
-    tm_rows = tm_df.to_dict(orient="records")
-    for r in tc_rows:
-        r["match_key"] = db.build_match_key(r, "all_tc")
-    for r in tm_rows:
-        r["match_key"] = db.build_match_key(r, "all_tm")
+    _alias_progress[p_id] = {"phase": "starting", "status": "running"}
+    background_tasks.add_task(_run_sync_check_job, p_id)
+    return {"status": "started"}
 
-    result = db.check_sync(p_id, tc_rows, tm_rows)
-    _last_check_cache[p_id] = result
-    return result
+
+@app.get("/api/projects/{p_id}/sync/progress")
+def sync_progress(p_id: int):
+    return _alias_progress.get(p_id, {"phase": "idle", "status": "idle"})
+
+# @app.post("/api/projects/{p_id}/sync/check")
+# def sync_check(p_id: int):
+#     paths = project_paths(p_id)
+#     tc_path = os.path.join(paths["output"], "all_tc.xlsx")
+#     tm_path = os.path.join(paths["output"], "all_tm.xlsx")
+#     if not os.path.isfile(tc_path) or not os.path.isfile(tm_path):
+#         raise HTTPException(status_code=400, detail="all_tc.xlsx/all_tm.xlsx not found — run /sync first")
+
+#     tc_df = pd.read_excel(tc_path)
+#     tm_df = pd.read_excel(tm_path)
+#     tc_rows = tc_df.to_dict(orient="records")
+#     tm_rows = tm_df.to_dict(orient="records")
+#     for r in tc_rows:
+#         r["match_key"] = db.build_match_key(r, "all_tc")
+#     for r in tm_rows:
+#         r["match_key"] = db.build_match_key(r, "all_tm")
+
+#     result = db.check_sync(p_id, tc_rows, tm_rows)
+#     _last_check_cache[p_id] = result
+#     return result
 
 
 class SyncConfirm(BaseModel):
